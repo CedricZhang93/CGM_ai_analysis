@@ -1,0 +1,1115 @@
+<!DOCTYPE html>
+<html class="light" lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>GlucoTwin AI | 血糖数字孪生</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        colors: {
+          "primary": "#000666",
+          "primary-fixed-dim": "#bdc2ff",
+          "surface-dim": "#d8dadd",
+          "tertiary-fixed": "#dee0ff",
+          "secondary-fixed-dim": "#00daf3",
+          "on-tertiary-container": "#8090f6",
+          "on-primary-fixed": "#000767",
+          "on-background": "#191c1e",
+          "on-secondary-container": "#00616d",
+          "on-primary-fixed-variant": "#343d96",
+          "on-primary-container": "#8690ee",
+          "secondary-fixed": "#9cf0ff",
+          "surface-variant": "#e0e3e6",
+          "on-secondary-fixed-variant": "#004f58",
+          "surface": "#f7f9fc",
+          "inverse-on-surface": "#eff1f4",
+          "surface-bright": "#f7f9fc",
+          "inverse-primary": "#bdc2ff",
+          "on-secondary-fixed": "#001f24",
+          "on-tertiary-fixed-variant": "#2c3c9e",
+          "primary-fixed": "#e0e0ff",
+          "on-tertiary-fixed": "#000e5e",
+          "primary-container": "#1a237e",
+          "surface-container": "#eceef1",
+          "secondary-container": "#00e3fd",
+          "secondary": "#006875",
+          "on-secondary": "#ffffff",
+          "error": "#ba1a1a",
+          "outline": "#767683",
+          "surface-container-low": "#f2f4f7",
+          "surface-tint": "#4c56af",
+          "surface-container-highest": "#e0e3e6",
+          "on-error": "#ffffff",
+          "error-container": "#ffdad6",
+          "background": "#f7f9fc",
+          "on-primary": "#ffffff",
+          "on-surface": "#191c1e",
+          "inverse-surface": "#2d3133",
+          "tertiary": "#000e5d",
+          "surface-container-lowest": "#ffffff",
+          "on-tertiary": "#ffffff",
+          "on-surface-variant": "#454652",
+          "on-error-container": "#93000a",
+          "tertiary-container": "#0d2187",
+          "surface-container-high": "#e6e8eb",
+          "outline-variant": "#c6c5d4"
+        },
+        fontFamily: {
+          "headline": ["Manrope"],
+          "body": ["Manrope"],
+          "label": ["Manrope"]
+        },
+        borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+      },
+    },
+  }
+</script>
+<style>
+  .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+  .ai-gradient-bg { background: linear-gradient(135deg, rgba(26,35,126,.08) 0%, rgba(0,227,253,.05) 100%); }
+  .ai-border-top { border-top: 1px solid #00daf3; }
+  .content-section { display: none; }
+  .content-section.active { display: block; }
+  .nav-item.active {
+    color: #000666 !important; font-weight: 700;
+    border-right: 2px solid #000666;
+    background: rgba(255,255,255,.5);
+  }
+  .nav-item.active .material-symbols-outlined { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+  .msg-user { background: #000666; color: #fff; border-radius: 1rem 1rem 0 1rem; }
+  .msg-ai   { background: #f2f4f7; color: #191c1e; border-radius: 1rem 1rem 1rem 0; }
+  #chat-messages { scrollbar-width: thin; }
+  @keyframes pulse-dot { 0%,80%,100%{opacity:.2} 40%{opacity:1} }
+  .typing-dot { animation: pulse-dot 1.2s infinite; display:inline-block; width:6px; height:6px; border-radius:50%; background:#006875; margin:0 2px; }
+  .typing-dot:nth-child(2){animation-delay:.2s}
+  .typing-dot:nth-child(3){animation-delay:.4s}
+  @keyframes toast-in { from{transform:translateX(120%);opacity:0} to{transform:translateX(0);opacity:1} }
+  .toast-anim { animation: toast-in .3s ease-out; }
+  .drop-zone.drag-over { border-color: #006875; background: rgba(0,104,117,.04); }
+  .line-clamp-1 { overflow:hidden; display:-webkit-box; -webkit-line-clamp:1; -webkit-box-orient:vertical; }
+</style>
+</head>
+<body class="bg-surface font-body text-on-surface">
+
+<!-- Sidebar -->
+<aside class="h-screen w-64 fixed left-0 top-0 bg-slate-100 flex flex-col py-6 px-4 gap-y-2 z-50 overflow-y-auto">
+  <div class="flex items-center gap-3 px-2 mb-8">
+    <div class="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-secondary-fixed-dim">
+      <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1;">fluid_med</span>
+    </div>
+    <div>
+      <h1 class="text-lg font-black text-indigo-900 tracking-tighter">GlucoTwin AI</h1>
+      <p class="text-[10px] font-medium uppercase tracking-widest text-slate-500">Clinical Precision</p>
+    </div>
+  </div>
+  <nav class="space-y-1">
+    <a class="nav-item active flex items-center gap-3 px-4 py-3 rounded-lg text-slate-500 font-medium text-sm uppercase tracking-widest hover:bg-slate-200/50 transition-all cursor-pointer" data-nav="dashboard" onclick="App.nav('dashboard')">
+      <span class="material-symbols-outlined">dashboard</span>Dashboard
+    </a>
+    <a class="nav-item flex items-center gap-3 px-4 py-3 rounded-lg text-slate-500 font-medium text-sm uppercase tracking-widest hover:bg-slate-200/50 transition-all cursor-pointer" data-nav="food-log" onclick="App.nav('food-log')">
+      <span class="material-symbols-outlined">restaurant</span>Food Log
+    </a>
+    <a class="nav-item flex items-center gap-3 px-4 py-3 rounded-lg text-slate-500 font-medium text-sm uppercase tracking-widest hover:bg-slate-200/50 transition-all cursor-pointer" data-nav="history" onclick="App.nav('history')">
+      <span class="material-symbols-outlined">timeline</span>History
+    </a>
+    <a class="nav-item flex items-center gap-3 px-4 py-3 rounded-lg text-slate-500 font-medium text-sm uppercase tracking-widest hover:bg-slate-200/50 transition-all cursor-pointer" data-nav="ai-advisor" onclick="App.nav('ai-advisor')">
+      <span class="material-symbols-outlined">psychology</span>AI Advisor
+    </a>
+    <a class="nav-item flex items-center gap-3 px-4 py-3 rounded-lg text-slate-500 font-medium text-sm uppercase tracking-widest hover:bg-slate-200/50 transition-all cursor-pointer" data-nav="knowledge" onclick="App.nav('knowledge')">
+      <span class="material-symbols-outlined">menu_book</span>Knowledge Base
+    </a>
+    <a class="nav-item flex items-center gap-3 px-4 py-3 rounded-lg text-slate-500 font-medium text-sm uppercase tracking-widest hover:bg-slate-200/50 transition-all cursor-pointer" data-nav="settings" onclick="App.nav('settings')">
+      <span class="material-symbols-outlined">settings</span>Settings
+    </a>
+  </nav>
+  <div class="mt-auto px-2">
+    <button onclick="App.nav('dashboard')" class="w-full py-4 bg-primary text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:opacity-90 active:scale-95 transition-all">
+      Analyze Trends
+    </button>
+  </div>
+</aside>
+
+<!-- Main -->
+<main class="ml-64 min-h-screen">
+  <!-- Top Bar -->
+  <header class="w-full sticky top-0 z-40 bg-slate-50/70 backdrop-blur-xl shadow-sm flex items-center justify-between px-6 py-3">
+    <div class="flex items-center gap-4">
+      <div class="relative">
+        <span class="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-slate-400 text-lg">search</span>
+        <input id="search-input" class="bg-slate-200/50 border-none rounded-full pl-10 pr-4 py-1.5 text-sm focus:ring-2 focus:ring-primary/20 w-64 transition-all" placeholder="搜索历史数据..." type="text" oninput="App.handleSearch(this.value)"/>
+      </div>
+    </div>
+    <div class="flex items-center gap-4">
+      <div id="api-key-indicator" class="flex items-center gap-2 px-3 py-1.5 rounded-full cursor-pointer hover:bg-slate-100 transition-colors" onclick="App.nav('settings')">
+        <span class="w-2 h-2 rounded-full bg-slate-300" id="key-dot"></span>
+        <span id="key-label" class="text-slate-400 text-xs">设置 API Key</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="p-8 max-w-7xl mx-auto space-y-8">
+
+    <!-- ===== DASHBOARD ===== -->
+    <section id="section-dashboard" class="content-section active space-y-8">
+      <div class="flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <div>
+          <h2 class="text-3xl font-extrabold text-primary tracking-tight font-headline">健康总览</h2>
+          <p class="text-on-surface-variant text-sm mt-1">血糖趋势与实时分析</p>
+        </div>
+        <div class="flex bg-surface-container-low p-1 rounded-xl">
+          <button onclick="App.setRange('24h')" data-range="24h" class="range-btn px-6 py-2 text-xs font-bold uppercase tracking-wider text-slate-500 hover:text-primary transition-colors rounded-lg">24 Hours</button>
+          <button onclick="App.setRange('7d')"  data-range="7d"  class="range-btn px-6 py-2 text-xs font-bold uppercase tracking-wider bg-white shadow-sm text-primary rounded-lg transition-all">7 Days</button>
+          <button onclick="App.setRange('30d')" data-range="30d" class="range-btn px-6 py-2 text-xs font-bold uppercase tracking-wider text-slate-500 hover:text-primary transition-colors rounded-lg">30 Days</button>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="bg-surface-container-lowest p-6 rounded-xl border-b-2 border-transparent hover:border-secondary transition-all">
+          <div class="flex justify-between items-start mb-4">
+            <span class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Time in Range</span>
+            <span class="material-symbols-outlined text-secondary text-sm">bolt</span>
+          </div>
+          <div class="flex items-baseline gap-2">
+            <span class="text-4xl font-black text-primary" id="stat-tir">--</span>
+            <span class="text-xs font-medium text-slate-400">%</span>
+          </div>
+          <div class="mt-4 w-full bg-surface-container-high h-1 rounded-full overflow-hidden">
+            <div class="bg-secondary h-full transition-all duration-500" id="stat-tir-bar" style="width:0%"></div>
+          </div>
+        </div>
+        <div class="bg-surface-container-lowest p-6 rounded-xl border-b-2 border-transparent hover:border-secondary transition-all">
+          <div class="flex justify-between items-start mb-4">
+            <span class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Average Glucose</span>
+            <span class="material-symbols-outlined text-primary-fixed-dim text-sm">analytics</span>
+          </div>
+          <div class="flex items-baseline gap-2">
+            <span class="text-4xl font-black text-primary" id="stat-avg">--</span>
+            <span class="text-xs font-medium text-slate-400">mmol/L</span>
+          </div>
+          <p class="text-[10px] mt-4 text-slate-500 font-medium" id="stat-cgm-count">暂无数据</p>
+        </div>
+        <div class="bg-surface-container-lowest p-6 rounded-xl border-b-2 border-transparent hover:border-secondary transition-all">
+          <div class="flex justify-between items-start mb-4">
+            <span class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Estimated A1c</span>
+            <span class="material-symbols-outlined text-secondary text-sm">science</span>
+          </div>
+          <div class="flex items-baseline gap-2">
+            <span class="text-4xl font-black text-primary" id="stat-a1c">--</span>
+            <span class="text-xs font-medium text-slate-400">%</span>
+          </div>
+          <p class="text-[10px] mt-4 text-slate-500 font-medium" id="stat-food-count">记录进餐: 0 次</p>
+        </div>
+      </div>
+
+      <!-- Chart -->
+      <div class="bg-surface-container-lowest rounded-xl p-8 relative overflow-hidden">
+        <div class="flex items-center justify-between mb-6">
+          <div class="flex items-center gap-3">
+            <h3 class="text-lg font-bold text-primary">综合趋势图表</h3>
+            <span class="px-2 py-1 bg-secondary/10 text-secondary text-[10px] font-bold rounded">LIVE</span>
+          </div>
+          <div class="flex gap-4">
+            <div class="flex items-center gap-2">
+              <span class="w-3 h-3 rounded-full bg-primary"></span>
+              <span class="text-[10px] font-bold uppercase text-slate-400">Glucose</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="w-3 h-3 rounded-full bg-secondary-fixed-dim"></span>
+              <span class="text-[10px] font-bold uppercase text-slate-400">Meals</span>
+            </div>
+          </div>
+        </div>
+        <div class="relative h-72 w-full" id="chart-container">
+          <canvas id="glucose-chart"></canvas>
+          <div id="chart-empty" class="hidden absolute inset-0 flex flex-col items-center justify-center text-slate-400 gap-2">
+            <span class="material-symbols-outlined text-4xl">show_chart</span>
+            <p class="text-sm">请在 <strong class="cursor-pointer text-primary" onclick="App.nav('settings')">Settings</strong> 中导入 CGM 数据</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== FOOD LOG ===== -->
+    <section id="section-food-log" class="content-section space-y-6">
+      <div>
+        <h2 class="text-3xl font-extrabold text-primary tracking-tight font-headline">记录进餐</h2>
+        <p class="text-on-surface-variant text-sm mt-1">上传食物图片，AI 双模预测血糖响应</p>
+      </div>
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <!-- Left: Upload Form -->
+        <div class="space-y-4">
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="text-[10px] font-bold uppercase tracking-widest text-slate-400 block mb-2">日期</label>
+              <input type="date" id="log-date" class="w-full bg-surface-container-low border border-outline-variant rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-primary/20 outline-none"/>
+            </div>
+            <div>
+              <label class="text-[10px] font-bold uppercase tracking-widest text-slate-400 block mb-2">时间</label>
+              <input type="time" id="log-time" class="w-full bg-surface-container-low border border-outline-variant rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-primary/20 outline-none"/>
+            </div>
+          </div>
+          <div>
+            <label class="text-[10px] font-bold uppercase tracking-widest text-slate-400 block mb-2">餐次</label>
+            <select id="log-meal-type" class="w-full bg-surface-container-low border border-outline-variant rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-primary/20 outline-none">
+              <option>早餐</option><option>午餐</option><option>晚餐</option><option>加餐</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-[10px] font-bold uppercase tracking-widest text-slate-400 block mb-2">食物图片</label>
+            <div id="drop-zone" class="drop-zone border-2 border-dashed border-outline-variant rounded-xl p-8 text-center cursor-pointer hover:border-secondary transition-colors"
+                 onclick="document.getElementById('food-file-input').click()"
+                 ondragover="App.onDragOver(event)" ondragleave="App.onDragLeave(event)" ondrop="App.onDrop(event)">
+              <span class="material-symbols-outlined text-4xl text-slate-300 block mb-2">add_photo_alternate</span>
+              <p class="text-sm text-slate-400">点击或拖拽上传食物图片</p>
+              <p class="text-xs text-slate-300 mt-1">支持多张图片 (JPG, PNG)</p>
+            </div>
+            <input type="file" id="food-file-input" accept="image/*" multiple class="hidden" onchange="App.onFileSelect(this.files)"/>
+            <div id="image-previews" class="grid grid-cols-4 gap-2 mt-3"></div>
+          </div>
+          <button id="predict-btn" onclick="App.handlePredict()" class="w-full py-4 bg-primary text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:opacity-90 active:scale-95 transition-all">
+            <span class="material-symbols-outlined align-middle text-sm mr-1">auto_awesome</span>
+            启动双模预测
+          </button>
+        </div>
+
+        <!-- Right: Prediction Result -->
+        <div id="pred-result-panel">
+          <div id="pred-empty" class="h-full flex flex-col items-center justify-center text-slate-400 gap-3 py-16">
+            <span class="material-symbols-outlined text-5xl">psychology</span>
+            <p class="text-sm text-center">上传食物图片后<br/>AI 将分析血糖响应</p>
+          </div>
+          <div id="pred-result" class="hidden space-y-4">
+            <div class="ai-gradient-bg ai-border-top p-6 rounded-xl space-y-4">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2 text-secondary">
+                  <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1;">auto_awesome</span>
+                  <span class="text-xs font-bold uppercase tracking-widest">AI 预测结果</span>
+                </div>
+                <span id="pred-mode-badge" class="px-3 py-1 text-[10px] font-bold rounded-full bg-secondary/10 text-secondary"></span>
+              </div>
+              <h3 id="pred-food-name" class="text-xl font-black text-primary"></h3>
+              <p id="pred-risk" class="text-sm text-indigo-900/70 leading-relaxed"></p>
+              <div class="grid grid-cols-2 gap-4">
+                <div class="bg-white/60 p-4 rounded-lg text-center">
+                  <div class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">1小时预测</div>
+                  <div class="text-lg font-black text-primary" id="pred-1h"></div>
+                </div>
+                <div class="bg-white/60 p-4 rounded-lg text-center">
+                  <div class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">2小时预测</div>
+                  <div class="text-lg font-black text-primary" id="pred-2h"></div>
+                </div>
+              </div>
+              <div class="bg-white/60 p-4 rounded-lg">
+                <div class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">控糖建议</div>
+                <p id="pred-advice" class="text-sm text-indigo-900/80 leading-relaxed"></p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== HISTORY ===== -->
+    <section id="section-history" class="content-section space-y-6">
+      <div>
+        <h2 class="text-3xl font-extrabold text-primary tracking-tight font-headline">历史记录详情</h2>
+        <p class="text-on-surface-variant text-sm mt-1">深度血糖趋势分析与临床洞察</p>
+      </div>
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Activity Log -->
+        <div class="lg:col-span-2 space-y-4">
+          <h3 class="text-xl font-bold text-primary font-headline">详细活动日志</h3>
+          <div id="activity-log" class="space-y-3">
+            <div class="text-center py-12 text-slate-400">
+              <span class="material-symbols-outlined text-4xl block mb-2">hourglass_empty</span>
+              <p class="text-sm">加载中...</p>
+            </div>
+          </div>
+        </div>
+        <!-- Right Column -->
+        <div class="space-y-6">
+          <h3 class="text-xl font-bold text-primary font-headline">AI 周期回顾</h3>
+          <div class="ai-gradient-bg ai-border-top p-6 rounded-xl space-y-4">
+            <div class="flex items-center gap-2 text-secondary">
+              <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1;">auto_awesome</span>
+              <span class="text-xs font-bold uppercase tracking-widest">智能洞察</span>
+            </div>
+            <div id="ai-review-content" class="text-sm text-indigo-900/70 leading-relaxed">
+              点击左侧记录查看详情与 AI 校准
+            </div>
+          </div>
+          <!-- Detail Panel -->
+          <div id="food-detail-panel" class="hidden bg-surface-container-lowest rounded-xl p-6 space-y-4">
+            <div class="flex items-center justify-between">
+              <h4 class="font-bold text-primary text-sm" id="detail-title">详情</h4>
+              <button onclick="App.closeDetail()" class="text-slate-400 hover:text-slate-600">
+                <span class="material-symbols-outlined text-lg">close</span>
+              </button>
+            </div>
+            <div id="detail-images" class="grid grid-cols-3 gap-2"></div>
+            <div id="detail-prediction" class="bg-surface-container-low p-4 rounded-lg text-sm space-y-2"></div>
+            <div id="detail-calibration-area"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== AI ADVISOR ===== -->
+    <section id="section-ai-advisor" class="content-section space-y-6">
+      <div>
+        <h2 class="text-3xl font-extrabold text-primary tracking-tight font-headline">AI 健康顾问</h2>
+        <p class="text-on-surface-variant text-sm mt-1">基于你的健康档案与知识库的个性化问答</p>
+      </div>
+      <div class="bg-surface-container-lowest rounded-xl overflow-hidden flex flex-col" style="height:600px">
+        <div class="p-4 bg-primary flex items-center gap-3 flex-shrink-0">
+          <div class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">
+            <span class="material-symbols-outlined text-secondary-fixed-dim text-sm" style="font-variation-settings:'FILL' 1;">auto_awesome</span>
+          </div>
+          <div>
+            <div class="text-white font-bold text-sm">GlucoTwin AI</div>
+            <div class="text-white/50 text-[10px]">个性化血糖管理助手</div>
+          </div>
+          <button onclick="App.clearChat()" class="ml-auto text-white/40 hover:text-white text-[10px] uppercase tracking-widest transition-colors">清空</button>
+        </div>
+        <div id="chat-messages" class="flex-1 overflow-y-auto p-6 space-y-4">
+          <div class="flex gap-3">
+            <div class="w-8 h-8 rounded-full bg-secondary/10 flex items-center justify-center flex-shrink-0">
+              <span class="material-symbols-outlined text-secondary text-sm" style="font-variation-settings:'FILL' 1;">auto_awesome</span>
+            </div>
+            <div class="msg-ai px-4 py-3 text-sm max-w-sm">你好！我是你的 GlucoTwin AI 顾问。有任何关于血糖管理、饮食搭配或健康生活的问题，都可以问我。</div>
+          </div>
+        </div>
+        <div class="p-4 border-t border-outline-variant flex gap-3 flex-shrink-0">
+          <input type="text" id="chat-input" placeholder="输入问题，按 Enter 发送..." class="flex-1 bg-surface-container-low border border-outline-variant rounded-full px-5 py-3 text-sm focus:ring-2 focus:ring-primary/20 focus:border-transparent outline-none" onkeydown="if(event.key==='Enter')App.sendChat()"/>
+          <button onclick="App.sendChat()" class="w-12 h-12 bg-primary text-white rounded-full flex items-center justify-center hover:opacity-90 active:scale-95 transition-all flex-shrink-0">
+            <span class="material-symbols-outlined text-sm">send</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== KNOWLEDGE BASE ===== -->
+    <section id="section-knowledge" class="content-section space-y-6">
+      <div>
+        <h2 class="text-3xl font-extrabold text-primary tracking-tight font-headline">知识库 (RAG)</h2>
+        <p class="text-on-surface-variant text-sm mt-1">上传医嘱、体质报告或饮食禁忌，AI 在预测时自动参考</p>
+      </div>
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div class="bg-surface-container-lowest rounded-xl p-6 space-y-4">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-secondary">database</span>
+            <h3 class="font-bold text-primary">知识库状态</h3>
+          </div>
+          <div id="kb-status-card" class="flex items-center gap-3 p-4 rounded-lg bg-surface-container-low">
+            <span class="w-3 h-3 rounded-full bg-slate-300" id="kb-dot"></span>
+            <span class="text-sm font-medium text-on-surface" id="kb-status-text">检查中...</span>
+          </div>
+          <div id="kb-rag-warning" class="hidden p-4 bg-error-container rounded-lg space-y-2">
+            <p class="text-xs text-on-error-container font-bold">RAG 依赖库未安装，运行以下命令安装：</p>
+            <code class="text-xs text-on-error-container block bg-error-container/50 p-2 rounded">pip install langchain-google-genai langchain-community chromadb pypdf</code>
+          </div>
+        </div>
+        <div class="bg-surface-container-lowest rounded-xl p-6 space-y-4">
+          <h3 class="font-bold text-primary">上传医疗文件</h3>
+          <p class="text-xs text-slate-400 leading-relaxed">支持 TXT / PDF。上传后 AI 将构建向量索引（受 API 速率限制，每批次间隔3秒，文件越大越慢）。</p>
+          <div class="space-y-3">
+            <input type="file" id="kb-file" accept=".txt,.pdf" class="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 cursor-pointer"/>
+            <button onclick="App.handleKBUpload()" id="kb-upload-btn" class="w-full py-3 bg-primary text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:opacity-90 active:scale-95 transition-all">
+              <span class="material-symbols-outlined align-middle text-sm mr-1">upload</span>
+              存入知识库
+            </button>
+          </div>
+          <div id="kb-progress" class="hidden space-y-2">
+            <div class="flex items-center gap-2 text-secondary text-xs font-bold">
+              <span class="material-symbols-outlined text-sm animate-spin">sync</span>
+              正在构建知识库，请耐心等待...
+            </div>
+            <div class="w-full bg-surface-container-high h-1.5 rounded-full overflow-hidden">
+              <div class="bg-secondary h-full rounded-full w-2/3 animate-pulse"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== SETTINGS ===== -->
+    <section id="section-settings" class="content-section space-y-6">
+      <div>
+        <h2 class="text-3xl font-extrabold text-primary tracking-tight font-headline">设置</h2>
+        <p class="text-on-surface-variant text-sm mt-1">配置 API 密钥与数据导入</p>
+      </div>
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <!-- API Key -->
+        <div class="bg-surface-container-lowest rounded-xl p-6 space-y-4">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-secondary">key</span>
+            <h3 class="font-bold text-primary">Google Gemini API Key</h3>
+          </div>
+          <p class="text-xs text-slate-400">密钥保存在浏览器本地 (localStorage)，不会上传到任何服务器。</p>
+          <div class="flex gap-3">
+            <input type="password" id="api-key-input" placeholder="AIzaSy..." class="flex-1 bg-surface-container-low border border-outline-variant rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-primary/20 outline-none" onkeydown="if(event.key==='Enter')App.saveApiKey()"/>
+            <button onclick="App.saveApiKey()" class="px-6 py-3 bg-primary text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:opacity-90 active:scale-95 transition-all flex-shrink-0">保存</button>
+          </div>
+          <div id="key-saved-hint" class="hidden text-xs text-secondary font-bold">✓ API Key 已保存</div>
+        </div>
+        <!-- CGM Import -->
+        <div class="bg-surface-container-lowest rounded-xl p-6 space-y-4">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-secondary">upload_file</span>
+            <h3 class="font-bold text-primary">导入 CGM 数据 (CSV)</h3>
+          </div>
+          <p class="text-xs text-slate-400 leading-relaxed">CSV 需含时间列（timestamp / date / time）和血糖列（glucose / value / mmol），单位 mmol/L。</p>
+          <div class="space-y-3">
+            <input type="file" id="cgm-file" accept=".csv" class="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-secondary/10 file:text-secondary hover:file:bg-secondary/20 cursor-pointer"/>
+            <button onclick="App.handleCGMImport()" class="w-full py-3 bg-secondary text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:opacity-90 active:scale-95 transition-all">
+              <span class="material-symbols-outlined align-middle text-sm mr-1">publish</span>
+              导入数据
+            </button>
+          </div>
+          <div id="cgm-import-result" class="hidden text-xs font-bold"></div>
+        </div>
+        <!-- Danger Zone -->
+        <div class="bg-error-container rounded-xl p-6 space-y-3 lg:col-span-2">
+          <h3 class="font-bold text-on-error-container">危险操作</h3>
+          <p class="text-xs text-on-error-container/70">以下操作不可恢复，请谨慎操作。</p>
+          <button onclick="App.clearAllData()" class="px-6 py-2 bg-error text-white rounded-lg text-xs font-bold uppercase tracking-widest hover:opacity-90 active:scale-95 transition-all">
+            清空所有数据
+          </button>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<!-- Loading Overlay -->
+<div id="loading-overlay" class="hidden fixed inset-0 bg-black/30 backdrop-blur-sm z-[100] flex items-center justify-center">
+  <div class="bg-white rounded-2xl px-8 py-6 flex items-center gap-4 shadow-2xl">
+    <span class="material-symbols-outlined text-secondary text-2xl" style="animation:spin 1s linear infinite">sync</span>
+    <span class="text-sm font-bold text-primary" id="loading-msg">处理中...</span>
+  </div>
+</div>
+<style>@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}</style>
+
+<!-- Toast Container -->
+<div id="toast-container" class="fixed top-4 right-4 z-[200] space-y-2 pointer-events-none"></div>
+
+<script>
+const App = {
+  currentRange: '7d',
+  chartInstance: null,
+  selectedFoodFiles: [],
+
+  // ---- Utilities ----
+  getApiKey()  { return localStorage.getItem('glucotwin_key') || ''; },
+  setApiKey(k) { localStorage.setItem('glucotwin_key', k); },
+  getChatHistory()   { try { return JSON.parse(localStorage.getItem('glucotwin_chat') || '[]'); } catch { return []; } },
+  saveChatHistory(h) { localStorage.setItem('glucotwin_chat', JSON.stringify(h)); },
+
+  async api(path, options = {}) {
+    const resp = await fetch(path, options);
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({ detail: resp.statusText }));
+      throw new Error(err.detail || '请求失败');
+    }
+    return resp.json();
+  },
+
+  showLoading(msg = '处理中...') {
+    document.getElementById('loading-msg').textContent = msg;
+    document.getElementById('loading-overlay').classList.remove('hidden');
+  },
+  hideLoading() { document.getElementById('loading-overlay').classList.add('hidden'); },
+
+  showToast(msg, type = 'success') {
+    const el = document.createElement('div');
+    el.className = `toast-anim pointer-events-auto px-5 py-3 rounded-xl text-white text-sm font-bold shadow-lg max-w-xs ${type === 'success' ? 'bg-secondary' : 'bg-error'}`;
+    el.style.background = type === 'success' ? '#006875' : '#ba1a1a';
+    el.textContent = msg;
+    const c = document.getElementById('toast-container');
+    c.appendChild(el);
+    setTimeout(() => el.remove(), 4000);
+  },
+
+  md(text) {
+    if (!text) return '';
+    return String(text)
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.*?)\*/g, '<em>$1</em>')
+      .replace(/\n/g, '<br>');
+  },
+
+  fmtDateTime(iso) {
+    return new Date(iso).toLocaleString('zh-CN', {month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
+  },
+
+  // ---- Navigation ----
+  nav(section) {
+    document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
+    document.getElementById(`section-${section}`).classList.add('active');
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    const navEl = document.querySelector(`[data-nav="${section}"]`);
+    if (navEl) navEl.classList.add('active');
+    if (section === 'dashboard')  this.loadDashboard();
+    if (section === 'history')    this.loadHistory();
+    if (section === 'knowledge')  this.checkKBStatus();
+    if (section === 'settings')   this.initSettings();
+    if (section === 'food-log')   this.initFoodLog();
+    if (section === 'ai-advisor') this.initChat();
+  },
+
+  // ---- Dashboard ----
+  async loadDashboard() {
+    try {
+      const s = await this.api(`/api/stats?range=${this.currentRange}`);
+      this.renderStats(s);
+    } catch(e) { console.error('Stats error:', e); }
+    this.loadChart();
+  },
+
+  renderStats(s) {
+    document.getElementById('stat-tir').textContent  = s.time_in_range ?? '--';
+    document.getElementById('stat-avg').textContent  = s.avg_glucose ?? '--';
+    document.getElementById('stat-a1c').textContent  = s.estimated_a1c ?? '--';
+    document.getElementById('stat-tir-bar').style.width = (s.time_in_range ?? 0) + '%';
+    document.getElementById('stat-cgm-count').textContent  = s.cgm_count ? `共 ${s.cgm_count} 条读数` : '暂无 CGM 数据';
+    document.getElementById('stat-food-count').textContent = `记录进餐: ${s.food_count ?? 0} 次`;
+  },
+
+  async loadChart() {
+    try {
+      const data = await this.api(`/api/timeline?range=${this.currentRange}`);
+      this.renderChart(data.cgm, data.food);
+    } catch(e) { console.error('Chart error:', e); }
+  },
+
+  renderChart(cgm, food) {
+    const emptyEl = document.getElementById('chart-empty');
+    if (!cgm || cgm.length === 0) {
+      emptyEl.classList.remove('hidden');
+      return;
+    }
+    emptyEl.classList.add('hidden');
+    if (this.chartInstance) { this.chartInstance.destroy(); this.chartInstance = null; }
+
+    const cgmPts = cgm.map(d => ({ x: new Date(d.timestamp), y: d.value }));
+    const foodPts = food.map(f => {
+      const ft = new Date(f.timestamp).getTime();
+      const cl = cgm.reduce((p, c) =>
+        Math.abs(new Date(c.timestamp).getTime()-ft) < Math.abs(new Date(p.timestamp).getTime()-ft) ? c : p
+      );
+      return { x: new Date(f.timestamp), y: cl ? cl.value : 5 };
+    });
+
+    const ctx = document.getElementById('glucose-chart').getContext('2d');
+    this.chartInstance = new Chart(ctx, {
+      type: 'line',
+      data: {
+        datasets: [
+          {
+            label: '血糖',
+            data: cgmPts,
+            borderColor: '#000666',
+            backgroundColor: 'rgba(0,6,102,0.04)',
+            borderWidth: 2, fill: true, tension: 0.3,
+            pointRadius: 0, pointHoverRadius: 4,
+          },
+          {
+            type: 'scatter',
+            label: '进食',
+            data: foodPts,
+            backgroundColor: '#00daf3',
+            borderColor: '#fff',
+            borderWidth: 2,
+            pointRadius: 8, pointHoverRadius: 10,
+          }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        interaction: { mode: 'nearest', intersect: false },
+        scales: {
+          x: { type:'time', time:{displayFormats:{hour:'HH:mm',day:'MM/dd'}},
+               ticks:{color:'#767683',font:{size:10}}, grid:{color:'#eceef1'} },
+          y: { min:2, max:15, ticks:{color:'#767683',font:{size:10}}, grid:{color:'#eceef1'} }
+        },
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: {
+            title: items => new Date(items[0].parsed.x).toLocaleString('zh-CN'),
+            label: item => `${item.dataset.label}: ${item.parsed.y} mmol/L`
+          }},
+          annotation: { annotations: {
+            targetZone: {
+              type:'box', yMin:3.8, yMax:7.8,
+              backgroundColor:'rgba(0,104,117,0.04)',
+              borderColor:'rgba(0,104,117,0.15)', borderWidth:1
+            }
+          }}
+        }
+      }
+    });
+  },
+
+  setRange(r) {
+    this.currentRange = r;
+    document.querySelectorAll('.range-btn').forEach(b => {
+      const on = b.dataset.range === r;
+      b.className = on
+        ? 'range-btn px-6 py-2 text-xs font-bold uppercase tracking-wider bg-white shadow-sm text-primary rounded-lg transition-all'
+        : 'range-btn px-6 py-2 text-xs font-bold uppercase tracking-wider text-slate-500 hover:text-primary transition-colors rounded-lg';
+    });
+    this.loadDashboard();
+  },
+
+  handleSearch(q) {
+    const ql = q.toLowerCase();
+    document.querySelectorAll('.log-item').forEach(el => {
+      el.style.display = (!ql || (el.dataset.search || '').includes(ql)) ? '' : 'none';
+    });
+  },
+
+  // ---- Food Log ----
+  initFoodLog() {
+    const dateEl = document.getElementById('log-date');
+    const timeEl = document.getElementById('log-time');
+    if (!dateEl.value) {
+      const now = new Date();
+      dateEl.value = now.toISOString().split('T')[0];
+      timeEl.value = now.toTimeString().slice(0,5);
+    }
+  },
+
+  onDragOver(e)  { e.preventDefault(); document.getElementById('drop-zone').classList.add('drag-over'); },
+  onDragLeave()  { document.getElementById('drop-zone').classList.remove('drag-over'); },
+  onDrop(e) {
+    e.preventDefault();
+    document.getElementById('drop-zone').classList.remove('drag-over');
+    this.addFiles(e.dataTransfer.files);
+  },
+
+  onFileSelect(files) { this.addFiles(files); },
+
+  addFiles(files) {
+    this.selectedFoodFiles = [...this.selectedFoodFiles, ...Array.from(files)];
+    this.renderPreviews();
+  },
+
+  removeImg(i) {
+    this.selectedFoodFiles.splice(i, 1);
+    this.renderPreviews();
+  },
+
+  renderPreviews() {
+    document.getElementById('image-previews').innerHTML = this.selectedFoodFiles.map((f, i) => `
+      <div class="relative group">
+        <img src="${URL.createObjectURL(f)}" class="w-full h-20 object-cover rounded-lg border border-outline-variant"/>
+        <button onclick="App.removeImg(${i})" class="absolute top-1 right-1 w-5 h-5 bg-error text-white rounded-full text-xs hidden group-hover:flex items-center justify-center leading-none">&times;</button>
+      </div>`).join('');
+  },
+
+  async handlePredict() {
+    const key = this.getApiKey();
+    if (!key) { this.showToast('请先在 Settings 中配置 API Key', 'error'); return; }
+    if (!this.selectedFoodFiles.length) { this.showToast('请先上传食物图片', 'error'); return; }
+    const date = document.getElementById('log-date').value;
+    const time = document.getElementById('log-time').value;
+    const meal = document.getElementById('log-meal-type').value;
+    if (!date || !time) { this.showToast('请填写日期和时间', 'error'); return; }
+
+    const fd = new FormData();
+    fd.append('api_key', key);
+    fd.append('meal_type', meal);
+    fd.append('timestamp', `${date} ${time}:00`);
+    this.selectedFoodFiles.forEach(f => fd.append('files', f));
+
+    const btn = document.getElementById('predict-btn');
+    btn.disabled = true;
+    this.showLoading('AI 正在分析食物图片...');
+    try {
+      const res = await this.api('/api/food/predict', { method:'POST', body:fd });
+      this.renderPrediction(res.prediction);
+      this.showToast('预测完成！');
+      this.selectedFoodFiles = [];
+      document.getElementById('image-previews').innerHTML = '';
+    } catch(e) {
+      this.showToast('预测失败: ' + e.message, 'error');
+    } finally {
+      this.hideLoading();
+      btn.disabled = false;
+    }
+  },
+
+  renderPrediction(p) {
+    document.getElementById('pred-empty').classList.add('hidden');
+    document.getElementById('pred-result').classList.remove('hidden');
+    document.getElementById('pred-food-name').textContent = p.food_name || '识别中...';
+    document.getElementById('pred-risk').textContent      = p.risk_analysis || '';
+    document.getElementById('pred-1h').textContent        = p.predicted_1h_range || '--';
+    document.getElementById('pred-2h').textContent        = p.predicted_2h_range || '--';
+    document.getElementById('pred-advice').innerHTML      = this.md(p.advice || '');
+    const badge = document.getElementById('pred-mode-badge');
+    const mode  = (p.reasoning_mode || '').toLowerCase();
+    badge.textContent = (mode.includes('第一性原理') || mode.includes('first'))
+      ? '冷启动 · 第一性原理' : '经验模式';
+    badge.style.background = (mode.includes('第一性原理') || mode.includes('first'))
+      ? 'rgba(189,194,255,.3)' : 'rgba(0,104,117,.1)';
+    badge.style.color = (mode.includes('第一性原理') || mode.includes('first'))
+      ? '#000666' : '#006875';
+  },
+
+  // ---- History ----
+  async loadHistory() {
+    try {
+      const data = await this.api(`/api/timeline?range=${this.currentRange}`);
+      this.renderActivityLog(data.food);
+    } catch(e) {
+      document.getElementById('activity-log').innerHTML =
+        '<p class="text-center text-slate-400 py-8 text-sm">加载失败，请刷新重试</p>';
+    }
+  },
+
+  renderActivityLog(foods) {
+    const el = document.getElementById('activity-log');
+    if (!foods || foods.length === 0) {
+      el.innerHTML = `<div class="text-center py-12 text-slate-400">
+        <span class="material-symbols-outlined text-4xl block mb-2">restaurant</span>
+        <p class="text-sm">暂无进餐记录</p>
+        <p class="text-xs mt-1 cursor-pointer text-primary" onclick="App.nav('food-log')">去 Food Log 记录第一餐</p>
+      </div>`;
+      return;
+    }
+    el.innerHTML = [...foods].reverse().map(f => {
+      const calibrated = !!f.ai_calibration;
+      const mode = (f.prediction?.reasoning_mode || '').toLowerCase();
+      const isFirst = mode.includes('第一性原理') || mode.includes('first');
+      const badgeTxt = calibrated ? '✓ 已校准' : isFirst ? '冷启动' : '经验模式';
+      const badgeBg  = calibrated ? 'background:rgba(0,104,117,.1);color:#006875'
+                     : isFirst    ? 'background:rgba(189,194,255,.3);color:#000666'
+                     : 'background:rgba(0,104,117,.1);color:#006875';
+      const search = `${f.ai_prediction||''}${f.meal_type}`.toLowerCase();
+      return `
+      <div class="log-item bg-surface-container-lowest p-4 rounded-xl flex items-center justify-between group hover:bg-surface-container-low transition-colors cursor-pointer"
+           data-id="${f.id}" data-search="${search}" onclick="App.showFoodDetail(${f.id})">
+        <div class="flex items-center gap-4">
+          <div class="w-14 h-14 rounded-lg bg-surface-container flex items-center justify-center flex-shrink-0">
+            <span class="material-symbols-outlined text-slate-300 text-2xl">restaurant</span>
+          </div>
+          <div>
+            <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">${this.fmtDateTime(f.timestamp)} · ${f.meal_type}</div>
+            <h4 class="font-bold text-primary text-sm">${f.ai_prediction || '识别中...'}</h4>
+            <p class="text-xs text-on-surface-variant mt-0.5 line-clamp-1">${(f.prediction?.risk_analysis||'').slice(0,60)}${f.prediction?.risk_analysis ? '...' : ''}</p>
+          </div>
+        </div>
+        <div class="flex gap-8 text-right flex-shrink-0 ml-4">
+          <div>
+            <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">餐后峰值</div>
+            <div class="text-lg font-black text-primary">${f.peak_glucose ? f.peak_glucose.toFixed(1) : '--'} <span class="text-[10px] font-normal text-slate-400">mmol/L</span></div>
+          </div>
+          <div class="flex flex-col items-end">
+            <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">AI 评估</div>
+            <span class="px-3 py-1 text-[10px] font-bold rounded-full" style="${badgeBg}">${badgeTxt}</span>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  },
+
+  async showFoodDetail(id) {
+    const panel = document.getElementById('food-detail-panel');
+    panel.classList.remove('hidden');
+
+    let food = null;
+    try {
+      const data = await this.api('/api/timeline?range=30d');
+      food = data.food.find(f => f.id === id);
+    } catch(e) {}
+    if (!food) return;
+
+    document.getElementById('detail-title').textContent =
+      `${food.meal_type} · ${this.fmtDateTime(food.timestamp)}`;
+
+    // Load images
+    const imgArea = document.getElementById('detail-images');
+    imgArea.innerHTML = '<span class="text-xs text-slate-400">加载中...</span>';
+    try {
+      const imgs = await this.api(`/api/food/${id}/images`);
+      imgArea.innerHTML = imgs.images.length
+        ? imgs.images.map(b64 => `<img src="data:image/jpeg;base64,${b64}" class="h-20 w-full object-cover rounded-lg"/>`).join('')
+        : '<span class="text-xs text-slate-400">无图片</span>';
+    } catch(e) { imgArea.innerHTML = ''; }
+
+    // Prediction
+    const predArea = document.getElementById('detail-prediction');
+    if (food.prediction) {
+      const p = food.prediction;
+      predArea.innerHTML = `
+        <div class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">预测详情</div>
+        <div class="space-y-1">
+          <div class="text-xs"><span class="text-slate-400">模式：</span>${p.reasoning_mode || '--'}</div>
+          <div class="text-xs"><span class="text-slate-400">1h：</span><strong>${p.predicted_1h_range}</strong></div>
+          <div class="text-xs"><span class="text-slate-400">2h：</span><strong>${p.predicted_2h_range}</strong></div>
+          <div class="text-xs pt-2 border-t border-outline-variant"><span class="text-slate-400">建议：</span>${p.advice || '--'}</div>
+        </div>`;
+    } else {
+      predArea.innerHTML = '<p class="text-xs text-slate-400">无预测数据</p>';
+    }
+
+    // Calibration
+    const calArea = document.getElementById('detail-calibration-area');
+    if (food.ai_calibration) {
+      calArea.innerHTML = `
+        <div class="bg-secondary/5 p-4 rounded-lg">
+          <div class="text-[10px] font-bold uppercase tracking-widest text-secondary mb-2">AI 校准结论</div>
+          <p class="text-sm leading-relaxed">${this.md(food.ai_calibration)}</p>
+        </div>`;
+    } else {
+      const hasKey = !!this.getApiKey();
+      calArea.innerHTML = `
+        <button onclick="App.handleCalibrate(${id})" id="cal-btn-${id}"
+          class="w-full py-3 rounded-xl text-xs font-bold uppercase tracking-widest active:scale-95 transition-all ${hasKey ? 'bg-primary text-white hover:opacity-90' : 'bg-slate-200 text-slate-400 cursor-not-allowed'}"
+          ${hasKey ? '' : 'disabled'}>
+          <span class="material-symbols-outlined align-middle text-sm mr-1">auto_awesome</span>
+          验证预测 · AI 校准
+        </button>
+        ${!hasKey ? '<p class="text-xs text-slate-400 text-center mt-1">需要先设置 API Key</p>' : ''}`;
+    }
+
+    // AI review panel
+    document.getElementById('ai-review-content').innerHTML = food.prediction
+      ? `<strong>${food.ai_prediction}</strong><br><br>${food.prediction.risk_analysis || ''}<br><br><em>建议：${food.prediction.advice || ''}</em>`
+      : '<em class="text-slate-400">无 AI 分析数据</em>';
+  },
+
+  closeDetail() {
+    document.getElementById('food-detail-panel').classList.add('hidden');
+    document.getElementById('ai-review-content').textContent = '点击左侧记录查看详情与 AI 校准';
+  },
+
+  async handleCalibrate(id) {
+    const key = this.getApiKey();
+    if (!key) { this.showToast('请先配置 API Key', 'error'); return; }
+    const btn = document.getElementById(`cal-btn-${id}`);
+    if (btn) { btn.disabled = true; btn.textContent = '校准中...'; }
+    this.showLoading('AI 正在验证预测准确性...');
+    try {
+      const fd = new FormData();
+      fd.append('api_key', key);
+      await this.api(`/api/food/${id}/calibrate`, { method:'POST', body:fd });
+      this.showToast('校准完成！');
+      this.showFoodDetail(id);
+    } catch(e) {
+      this.showToast('校准失败: ' + e.message, 'error');
+      if (btn) { btn.disabled = false; btn.textContent = '验证预测 · AI 校准'; }
+    } finally {
+      this.hideLoading();
+    }
+  },
+
+  // ---- AI Chat ----
+  initChat() {
+    const history = this.getChatHistory();
+    if (history.length === 0) return;
+    const msgs = document.getElementById('chat-messages');
+    const initial = msgs.innerHTML;
+    msgs.innerHTML = initial + history.map(m => this.chatMsgHTML(m.role, m.text)).join('');
+    msgs.scrollTop = msgs.scrollHeight;
+  },
+
+  chatMsgHTML(role, text) {
+    const isUser = role === 'user';
+    return `<div class="flex gap-3 ${isUser ? 'justify-end' : ''}">
+      ${!isUser ? `<div class="w-8 h-8 rounded-full bg-secondary/10 flex items-center justify-center flex-shrink-0">
+        <span class="material-symbols-outlined text-secondary text-sm" style="font-variation-settings:'FILL' 1">auto_awesome</span>
+      </div>` : ''}
+      <div class="${isUser ? 'msg-user' : 'msg-ai'} px-4 py-3 text-sm max-w-xs md:max-w-md leading-relaxed">${this.md(text)}</div>
+      ${isUser ? `<div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
+        <span class="material-symbols-outlined text-white text-sm">person</span>
+      </div>` : ''}
+    </div>`;
+  },
+
+  async sendChat() {
+    const key = this.getApiKey();
+    if (!key) { this.showToast('请先配置 API Key', 'error'); return; }
+    const input = document.getElementById('chat-input');
+    const msg = input.value.trim();
+    if (!msg) return;
+    input.value = '';
+
+    const msgs = document.getElementById('chat-messages');
+    msgs.insertAdjacentHTML('beforeend', this.chatMsgHTML('user', msg));
+
+    const typingId = 'typing-' + Date.now();
+    msgs.insertAdjacentHTML('beforeend', `
+      <div id="${typingId}" class="flex gap-3">
+        <div class="w-8 h-8 rounded-full bg-secondary/10 flex items-center justify-center flex-shrink-0">
+          <span class="material-symbols-outlined text-secondary text-sm" style="font-variation-settings:'FILL' 1">auto_awesome</span>
+        </div>
+        <div class="msg-ai px-4 py-3 flex items-center gap-1">
+          <span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span>
+        </div>
+      </div>`);
+    msgs.scrollTop = msgs.scrollHeight;
+
+    try {
+      const fd = new FormData();
+      fd.append('message', msg);
+      fd.append('api_key', key);
+      const res = await this.api('/api/chat', { method:'POST', body:fd });
+      document.getElementById(typingId)?.remove();
+      msgs.insertAdjacentHTML('beforeend', this.chatMsgHTML('model', res.response));
+      msgs.scrollTop = msgs.scrollHeight;
+      const hist = this.getChatHistory();
+      hist.push({ role:'user', text:msg }, { role:'model', text:res.response });
+      this.saveChatHistory(hist.slice(-40));
+    } catch(e) {
+      document.getElementById(typingId)?.remove();
+      msgs.insertAdjacentHTML('beforeend', this.chatMsgHTML('model', `抱歉，出现错误：${e.message}`));
+      msgs.scrollTop = msgs.scrollHeight;
+    }
+  },
+
+  clearChat() {
+    this.saveChatHistory([]);
+    document.getElementById('chat-messages').innerHTML = `
+      <div class="flex gap-3">
+        <div class="w-8 h-8 rounded-full bg-secondary/10 flex items-center justify-center flex-shrink-0">
+          <span class="material-symbols-outlined text-secondary text-sm" style="font-variation-settings:'FILL' 1">auto_awesome</span>
+        </div>
+        <div class="msg-ai px-4 py-3 text-sm max-w-sm">聊天记录已清空，有什么可以帮你的吗？</div>
+      </div>`;
+  },
+
+  // ---- Knowledge Base ----
+  async checkKBStatus() {
+    try {
+      const s = await this.api('/api/knowledge/status');
+      const dot = document.getElementById('kb-dot');
+      const txt = document.getElementById('kb-status-text');
+      if (!s.rag_available) {
+        dot.style.background = '#ba1a1a';
+        txt.textContent = 'RAG 依赖库未安装';
+        document.getElementById('kb-rag-warning').classList.remove('hidden');
+      } else if (s.exists) {
+        dot.style.background = '#006875';
+        txt.textContent = '知识库已就绪';
+      } else {
+        dot.style.background = '#94a3b8';
+        txt.textContent = '知识库为空，请上传文件';
+      }
+    } catch(e) {}
+  },
+
+  async handleKBUpload() {
+    const key = this.getApiKey();
+    if (!key) { this.showToast('请先配置 API Key', 'error'); return; }
+    const fileEl = document.getElementById('kb-file');
+    if (!fileEl.files[0]) { this.showToast('请选择文件', 'error'); return; }
+
+    const fd = new FormData();
+    fd.append('api_key', key);
+    fd.append('file', fileEl.files[0]);
+
+    document.getElementById('kb-progress').classList.remove('hidden');
+    document.getElementById('kb-upload-btn').disabled = true;
+    try {
+      const res = await this.api('/api/knowledge/upload', { method:'POST', body:fd });
+      this.showToast(res.message);
+      this.checkKBStatus();
+      fileEl.value = '';
+    } catch(e) {
+      this.showToast('上传失败: ' + e.message, 'error');
+    } finally {
+      document.getElementById('kb-progress').classList.add('hidden');
+      document.getElementById('kb-upload-btn').disabled = false;
+    }
+  },
+
+  // ---- Settings ----
+  initSettings() {
+    const key = this.getApiKey();
+    if (key) {
+      document.getElementById('api-key-input').value = key;
+      document.getElementById('key-saved-hint').classList.remove('hidden');
+    }
+  },
+
+  saveApiKey() {
+    const val = document.getElementById('api-key-input').value.trim();
+    if (!val) { this.showToast('请输入 API Key', 'error'); return; }
+    this.setApiKey(val);
+    document.getElementById('key-saved-hint').classList.remove('hidden');
+    this.updateKeyIndicator();
+    this.showToast('API Key 已保存');
+  },
+
+  updateKeyIndicator() {
+    const key = this.getApiKey();
+    const dot   = document.getElementById('key-dot');
+    const label = document.getElementById('key-label');
+    dot.style.background   = key ? '#006875' : '#94a3b8';
+    label.style.color      = key ? '#006875' : '#94a3b8';
+    label.style.fontWeight = key ? '700' : '400';
+    label.textContent      = key ? 'API Key ✓' : '设置 API Key';
+  },
+
+  async handleCGMImport() {
+    const fileEl = document.getElementById('cgm-file');
+    if (!fileEl.files[0]) { this.showToast('请选择 CSV 文件', 'error'); return; }
+    const fd = new FormData();
+    fd.append('file', fileEl.files[0]);
+    this.showLoading('导入 CGM 数据...');
+    const hint = document.getElementById('cgm-import-result');
+    try {
+      const res = await this.api('/api/cgm/import', { method:'POST', body:fd });
+      hint.style.color = '#006875';
+      hint.textContent = `✓ 成功导入 ${res.count} 条血糖记录`;
+      hint.classList.remove('hidden');
+      fileEl.value = '';
+      this.showToast(`导入 ${res.count} 条 CGM 数据`);
+    } catch(e) {
+      hint.style.color = '#ba1a1a';
+      hint.textContent = '导入失败: ' + e.message;
+      hint.classList.remove('hidden');
+      this.showToast('导入失败: ' + e.message, 'error');
+    } finally {
+      this.hideLoading();
+    }
+  },
+
+  async clearAllData() {
+    if (!confirm('确定清空所有数据吗？此操作不可恢复！')) return;
+    try {
+      await this.api('/api/data/clear', { method:'DELETE' });
+      this.showToast('所有数据已清空');
+      this.loadDashboard();
+    } catch(e) {
+      this.showToast('操作失败: ' + e.message, 'error');
+    }
+  },
+
+  // ---- Init ----
+  async init() {
+    this.updateKeyIndicator();
+    const now = new Date();
+    document.getElementById('log-date').value = now.toISOString().split('T')[0];
+    document.getElementById('log-time').value = now.toTimeString().slice(0,5);
+    await this.loadDashboard();
+  }
+};
+
+document.addEventListener('DOMContentLoaded', () => App.init());
+</script>
+</body>
+</html>

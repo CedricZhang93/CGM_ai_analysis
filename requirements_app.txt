@@ -1,0 +1,14 @@
+# Core
+fastapi
+uvicorn[standard]
+google-generativeai
+pillow
+pandas
+python-multipart
+
+# RAG (optional — needed for Knowledge Base feature)
+langchain-google-genai
+langchain-community
+langchain-text-splitters
+chromadb
+pypdf

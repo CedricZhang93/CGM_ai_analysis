@@ -1,0 +1,5 @@
+python3.11 -m streamlit run E:\ai_test\DEVELOP\GI_RECOGINIZE\mvp_rag_V3_ui.py
+
+App启动记录
+uvicorn app:app --reload --port 8000
+http://localhost:8000
