@@ -1,14 +1,9 @@
-# Core
+# Core (the AI layer in ./glucotwin talks to the model over plain HTTP — no vendor SDK needed)
 fastapi
 uvicorn[standard]
-google-generativeai
-pillow
 pandas
+numpy
 python-multipart
 
-# RAG (optional — needed for Knowledge Base feature)
-langchain-google-genai
-langchain-community
-langchain-text-splitters
-chromadb
+# Optional — only needed to upload PDF files to the Knowledge Base
 pypdf

@@ -966,6 +966,7 @@ const App = {
       const fd = new FormData();
       fd.append('message', msg);
       fd.append('api_key', key);
+      fd.append('history', JSON.stringify(this.getChatHistory().slice(-20)));
       const res = await this.api('/api/chat', { method:'POST', body:fd });
       document.getElementById(typingId)?.remove();
       msgs.insertAdjacentHTML('beforeend', this.chatMsgHTML('model', res.response));
